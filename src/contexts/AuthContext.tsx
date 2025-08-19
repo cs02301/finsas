@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { User, AuthState } from '../types';
 import { storage } from '../utils/storage';
-import { createSeedData } from '../utils/seeding';
+import { api } from '../utils/api';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -72,58 +71,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    void password;
     dispatch({ type: 'SET_LOADING', payload: true });
-    
-    // Simular llamada a API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Verificar credenciales (simulado)
-    const storedUser = storage.getUser();
-    if (storedUser && storedUser.email === email) {
-      const token = `token_${Date.now()}`;
+    try {
+      const { user, token } = await api.login(email, password);
+      storage.setUser(user);
       storage.setToken(token);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user: storedUser, token } });
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
       return true;
+    } catch {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return false;
     }
-    
-    dispatch({ type: 'SET_LOADING', payload: false });
-    return false;
   };
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
-    void password;
     dispatch({ type: 'SET_LOADING', payload: true });
-    
-    // Simular llamada a API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const userId = uuidv4();
-    const user: User = {
-      id: userId,
-      email,
-      name,
-      currency: 'COP',
-      locale: 'es-CO',
-      theme: 'light',
-      createdAt: new Date().toISOString(),
-    };
-    
-    const token = `token_${Date.now()}`;
-    
-    // Guardar usuario y generar datos de ejemplo
-    storage.setUser(user);
-    storage.setToken(token);
-    
-    // Crear datos semilla
-    const { accounts, categories, transactions, budgets } = createSeedData(userId);
-    storage.setAccounts(accounts);
-    storage.setCategories(categories);
-    storage.setTransactions(transactions);
-    storage.setBudgets(budgets);
-    
-    dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
-    return true;
+    try {
+      const { user, token } = await api.register(email, password, name);
+      storage.setUser(user);
+      storage.setToken(token);
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+      return true;
+    } catch {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return false;
+    }
   };
 
   const logout = () => {
