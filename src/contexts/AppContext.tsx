@@ -2,11 +2,14 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback } 
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Budget, AppState, TransactionFilter } from '../types';
 import { storage } from '../utils/storage';
+import { api } from '../utils/api';
 import { useAuth } from './AuthContext';
 
 interface AppContextType extends AppState {
   // Accounts
-  createAccount: (account: Omit<Account, 'id' | 'userId' | 'currentBalance' | 'createdAt' | 'updatedAt'>) => void;
+  createAccount: (
+    account: Omit<Account, 'id' | 'userId' | 'currentBalance' | 'createdAt' | 'updatedAt'>
+  ) => Promise<void>;
   updateAccount: (id: string, updates: Partial<Account>) => void;
   deleteAccount: (id: string) => void;
   
@@ -126,7 +129,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   const [state, dispatch] = useReducer(appReducer, {
     accounts: [],
     categories: [],
@@ -134,22 +137,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     budgets: [],
   });
 
-  const loadData = useCallback(() => {
-    if (!user) return;
+  const loadData = useCallback(async () => {
+    if (!user || !token) return;
 
-    const accounts = storage.getAccounts(user.id);
+    const accounts = await api.getAccounts(token);
     const categories = storage.getCategories();
     const transactions = storage.getTransactions(user.id);
     const budgets = storage.getBudgets(user.id);
 
     dispatch({ type: 'SET_DATA', payload: { accounts, categories, transactions, budgets } });
-  }, [user]);
+  }, [user, token]);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      loadData();
+    if (isAuthenticated && user && token) {
+      void loadData();
     }
-  }, [isAuthenticated, loadData, user]);
+  }, [isAuthenticated, loadData, user, token]);
 
   // Calcular balances de cuentas
   const calculateAccountBalances = (accounts: Account[], transactions: Transaction[]) => {
@@ -180,41 +183,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const saveAccounts = (accounts: Account[]) => {
-    const updatedAccounts = calculateAccountBalances(accounts, state.transactions);
-    storage.setAccounts(updatedAccounts);
-    return updatedAccounts;
-  };
-
   // Account operations
-  const createAccount = (accountData: Omit<Account, 'id' | 'userId' | 'currentBalance' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) return;
-    
-    const account: Account = {
-      ...accountData,
-      id: uuidv4(),
-      userId: user.id,
-      currentBalance: accountData.openingBalance,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    
-    const updatedAccounts = [...state.accounts, account];
-    saveAccounts(updatedAccounts);
+  const createAccount = async (
+    accountData: Omit<Account, 'id' | 'userId' | 'currentBalance' | 'createdAt' | 'updatedAt'>
+  ) => {
+    if (!user || !token) return;
+    const account = await api.createAccount(token, accountData);
     dispatch({ type: 'ADD_ACCOUNT', payload: account });
   };
 
   const updateAccount = (id: string, updates: Partial<Account>) => {
-    const updatedAccounts = state.accounts.map(account =>
-      account.id === id ? { ...account, ...updates, updatedAt: new Date().toISOString() } : account
-    );
-    saveAccounts(updatedAccounts);
-    dispatch({ type: 'UPDATE_ACCOUNT', payload: { id, updates: { ...updates, updatedAt: new Date().toISOString() } } });
+    dispatch({ type: 'UPDATE_ACCOUNT', payload: { id, updates } });
   };
 
   const deleteAccount = (id: string) => {
-    const updatedAccounts = state.accounts.filter(account => account.id !== id);
-    saveAccounts(updatedAccounts);
     dispatch({ type: 'DELETE_ACCOUNT', payload: id });
   };
 
@@ -262,7 +244,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Actualizar balances de cuentas
     const updatedAccounts = calculateAccountBalances(state.accounts, updatedTransactions);
-    storage.setAccounts(updatedAccounts);
     
     dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
     updatedAccounts.forEach(account => {
@@ -278,7 +259,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Actualizar balances de cuentas
     const updatedAccounts = calculateAccountBalances(state.accounts, updatedTransactions);
-    storage.setAccounts(updatedAccounts);
     
     dispatch({ type: 'UPDATE_TRANSACTION', payload: { id, updates: { ...updates, updatedAt: new Date().toISOString() } } });
     updatedAccounts.forEach(account => {
@@ -292,7 +272,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Actualizar balances de cuentas
     const updatedAccounts = calculateAccountBalances(state.accounts, updatedTransactions);
-    storage.setAccounts(updatedAccounts);
     
     dispatch({ type: 'DELETE_TRANSACTION', payload: id });
     updatedAccounts.forEach(account => {
