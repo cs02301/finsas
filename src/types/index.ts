@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  passwordHash?: string;
   currency: string;
   locale: string;
   theme: 'light' | 'dark';

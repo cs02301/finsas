@@ -12,6 +12,10 @@ import { useToast } from './hooks/useToast';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
+import { Accounts } from './pages/Accounts';
+import { Transactions } from './pages/Transactions';
+import { Reports } from './pages/Reports';
+import { Settings } from './pages/Settings';
 
 const AppContent: React.FC = () => {
   const { toasts, removeToast } = useToast();
@@ -31,11 +35,11 @@ const AppContent: React.FC = () => {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="accounts" element={<div>Cuentas (En desarrollo)</div>} />
-            <Route path="transactions" element={<div>Transacciones (En desarrollo)</div>} />
+            <Route path="accounts" element={<Accounts />} />
+            <Route path="transactions" element={<Transactions />} />
             <Route path="budgets" element={<div>Presupuestos (En desarrollo)</div>} />
-            <Route path="reports" element={<div>Reportes (En desarrollo)</div>} />
-            <Route path="settings" element={<div>Configuración (En desarrollo)</div>} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
         </Routes>
       </Router>

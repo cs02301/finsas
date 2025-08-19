@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { User, AuthState } from '../types';
 import { storage } from '../utils/storage';
 import { createSeedData } from '../utils/seeding';
+import { createPasswordHash, verifyPassword } from '../utils/auth';
+import { useToast } from '../hooks/useToast';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
@@ -59,6 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading: true,
   });
 
+  const { success, error } = useToast();
+
   useEffect(() => {
     // Cargar usuario al iniciar
     const user = storage.getUser();
@@ -67,62 +71,94 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user && token) {
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
     } else {
+      // Si no hay usuario almacenado, crear un usuario demo con datos semilla
+      // Esto permite ver la app con datos iniciales y crear/editar desde cero.
+      const demoUserExists = storage.getUser();
+      if (!demoUserExists) {
+        const demoId = uuidv4();
+        const demoUser: User = {
+          id: demoId,
+          email: 'demo@local',
+          name: 'Usuario Demo',
+          currency: 'COP',
+          locale: 'es-CO',
+          theme: 'light',
+          createdAt: new Date().toISOString(),
+        };
+
+        const demoToken = `token_demo_${Date.now()}`;
+        storage.setUser(demoUser);
+        storage.setToken(demoToken);
+
+        const { accounts, categories, transactions, budgets } = createSeedData(demoId);
+        storage.setAccounts(accounts);
+        storage.setCategories(categories);
+        storage.setTransactions(transactions);
+        storage.setBudgets(budgets);
+
+        dispatch({ type: 'LOGIN_SUCCESS', payload: { user: demoUser, token: demoToken } });
+        return;
+      }
+
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    void password;
     dispatch({ type: 'SET_LOADING', payload: true });
-    
-    // Simular llamada a API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Verificar credenciales (simulado)
+
+    // Simular latencia
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     const storedUser = storage.getUser();
     if (storedUser && storedUser.email === email) {
-      const token = `token_${Date.now()}`;
-      storage.setToken(token);
-      dispatch({ type: 'LOGIN_SUCCESS', payload: { user: storedUser, token } });
-      return true;
+      const ok = await verifyPassword(password, storedUser.passwordHash);
+      if (ok) {
+        const token = `token_${Date.now()}`;
+        storage.setToken(token);
+        dispatch({ type: 'LOGIN_SUCCESS', payload: { user: storedUser, token } });
+        success('Login correcto', 'Bienvenido');
+        return true;
+      }
     }
-    
+
     dispatch({ type: 'SET_LOADING', payload: false });
+    error('Error de autenticación', 'Email o contraseña incorrectos');
     return false;
   };
 
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
-    void password;
     dispatch({ type: 'SET_LOADING', payload: true });
-    
-    // Simular llamada a API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+    await new Promise(resolve => setTimeout(resolve, 400));
+
     const userId = uuidv4();
+    const passwordHash = await createPasswordHash(password);
+
     const user: User = {
       id: userId,
       email,
       name,
+      passwordHash,
       currency: 'COP',
       locale: 'es-CO',
       theme: 'light',
       createdAt: new Date().toISOString(),
     };
-    
+
     const token = `token_${Date.now()}`;
-    
+
     // Guardar usuario y generar datos de ejemplo
     storage.setUser(user);
     storage.setToken(token);
-    
-    // Crear datos semilla
+
     const { accounts, categories, transactions, budgets } = createSeedData(userId);
     storage.setAccounts(accounts);
     storage.setCategories(categories);
     storage.setTransactions(transactions);
     storage.setBudgets(budgets);
-    
+
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
+    success('Cuenta creada', 'Tu cuenta ha sido creada correctamente');
     return true;
   };
 
