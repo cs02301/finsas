@@ -25,17 +25,16 @@ export const Layout: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div className="min-h-screen flex flex-col justify-start items-start bg-gray-50 dark:bg-gray-900">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
+  <Header onMenuClick={() => setSidebarOpen(true)} onQuickTransaction={() => setQuickTransactionOpen(true)} />
+
       <div className="lg:pl-64">
-        <Header 
-          onMenuClick={() => setSidebarOpen(true)}
-          onQuickTransaction={() => setQuickTransactionOpen(true)}
-        />
-        
-        <main className="py-6">
+        <main className="flex-1 pt-16 py-6 app-main">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Outlet />
           </div>

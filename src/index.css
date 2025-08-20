@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Ensure main content sits below fixed header (header height = 4rem) */
+.app-main {
+	/* Default layout for main content: reserve space for fixed header via pt-16 in layout */
+	display: block;
+	min-height: calc(100vh - 4rem);
+}
+
+/* Reserve space for fixed header globally */
+body {
+	padding-top: 4rem;
+}
+
+/* DEBUG outlines - remove after diagnosis */
+/* End of layout helpers */
+
+/* Force content container flush to top under header */
+/* End of layout helpers */

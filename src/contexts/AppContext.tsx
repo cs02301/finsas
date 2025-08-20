@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback } 
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Budget, AppState, TransactionFilter } from '../types';
 import { storage } from '../utils/storage';
+import { calculateBudgetsSpent } from '../utils/budgets';
 import { useAuth } from './AuthContext';
 
 interface AppContextType extends AppState {
@@ -264,10 +265,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedAccounts = calculateAccountBalances(state.accounts, updatedTransactions);
     storage.setAccounts(updatedAccounts);
     
+    // Recalcular presupuestos (spent) basados en transacciones
+    const recalcBudgets = calculateBudgetsSpent(updatedTransactions, state.budgets);
+    storage.setBudgets(recalcBudgets);
+    
     dispatch({ type: 'ADD_TRANSACTION', payload: transaction });
     updatedAccounts.forEach(account => {
       dispatch({ type: 'UPDATE_ACCOUNT', payload: { id: account.id, updates: { currentBalance: account.currentBalance } } });
     });
+    recalcBudgets.forEach(b => dispatch({ type: 'UPDATE_BUDGET', payload: { id: b.id, updates: { spent: b.spent } } }));
   };
 
   const updateTransaction = (id: string, updates: Partial<Transaction>) => {
@@ -280,10 +286,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedAccounts = calculateAccountBalances(state.accounts, updatedTransactions);
     storage.setAccounts(updatedAccounts);
     
+    // Recalcular presupuestos
+    const recalcBudgets = calculateBudgetsSpent(updatedTransactions, state.budgets);
+    storage.setBudgets(recalcBudgets);
+
     dispatch({ type: 'UPDATE_TRANSACTION', payload: { id, updates: { ...updates, updatedAt: new Date().toISOString() } } });
     updatedAccounts.forEach(account => {
       dispatch({ type: 'UPDATE_ACCOUNT', payload: { id: account.id, updates: { currentBalance: account.currentBalance } } });
     });
+    recalcBudgets.forEach(b => dispatch({ type: 'UPDATE_BUDGET', payload: { id: b.id, updates: { spent: b.spent } } }));
   };
 
   const deleteTransaction = (id: string) => {
@@ -294,11 +305,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const updatedAccounts = calculateAccountBalances(state.accounts, updatedTransactions);
     storage.setAccounts(updatedAccounts);
     
+    // Recalcular presupuestos
+    const recalcBudgets = calculateBudgetsSpent(updatedTransactions, state.budgets);
+    storage.setBudgets(recalcBudgets);
+
     dispatch({ type: 'DELETE_TRANSACTION', payload: id });
     updatedAccounts.forEach(account => {
       dispatch({ type: 'UPDATE_ACCOUNT', payload: { id: account.id, updates: { currentBalance: account.currentBalance } } });
     });
+    recalcBudgets.forEach(b => dispatch({ type: 'UPDATE_BUDGET', payload: { id: b.id, updates: { spent: b.spent } } }));
   };
+
+  // calculateBudgetsSpent is imported from utils
 
   const getFilteredTransactions = (filter: TransactionFilter): Transaction[] => {
     return state.transactions.filter(transaction => {

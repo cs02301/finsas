@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout/Layout';
 import { ToastContainer } from './components/UI/Toast';
 import { useToast } from './hooks/useToast';
+import { Budgets } from './pages/Budgets';
 
 // Pages
 import { Login } from './pages/Login';
@@ -18,7 +19,19 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 
 const AppContent: React.FC = () => {
-  const { toasts, removeToast } = useToast();
+  const { toasts, removeToast, addToast } = useToast();
+
+  // Listen for global toasts dispatched from hooks/components
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as any;
+      if (detail) {
+        addToast({ type: detail.type, title: detail.title, message: detail.message, _fromEvent: true } as any);
+      }
+    };
+    window.addEventListener('app:add-toast', handler as any);
+    return () => window.removeEventListener('app:add-toast', handler as any);
+  }, [addToast]);
 
   return (
     <>
@@ -37,7 +50,7 @@ const AppContent: React.FC = () => {
             <Route index element={<Dashboard />} />
             <Route path="accounts" element={<Accounts />} />
             <Route path="transactions" element={<Transactions />} />
-            <Route path="budgets" element={<div>Presupuestos (En desarrollo)</div>} />
+            <Route path="budgets" element={<Budgets />} />
             <Route path="reports" element={<Reports />} />
             <Route path="settings" element={<Settings />} />
           </Route>

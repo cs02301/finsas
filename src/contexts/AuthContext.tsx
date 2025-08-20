@@ -11,6 +11,8 @@ interface AuthContextType extends AuthState {
   register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<User>) => void;
+  startFromZero: () => void;
+  loadDemoData: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,6 +106,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  // Start from zero: create a demo user but with empty datasets
+  const startFromZero = () => {
+  // clear existing stored data so empty arrays actually replace previous values
+  storage.clearAll();
+
+  const demoId = uuidv4();
+    const demoUser: User = {
+      id: demoId,
+      email: 'demo@local',
+      name: 'Usuario Demo',
+      currency: 'COP',
+      locale: 'es-CO',
+      theme: 'light',
+      createdAt: new Date().toISOString(),
+    };
+
+    const demoToken = `token_demo_${Date.now()}`;
+    storage.setUser(demoUser);
+    storage.setToken(demoToken);
+
+  // explicitly set empty collections
+  storage.setAccounts([]);
+  storage.setCategories([]);
+  storage.setTransactions([]);
+  storage.setBudgets([]);
+
+    dispatch({ type: 'LOGIN_SUCCESS', payload: { user: demoUser, token: demoToken } });
+    success('Iniciado desde cero', 'Ahora puedes ingresar tus propios datos');
+  };
+
+  const loadDemoData = () => {
+  // clear existing stored data first
+  storage.clearAll();
+
+  const demoId = uuidv4();
+    const demoUser: User = {
+      id: demoId,
+      email: 'demo@local',
+      name: 'Usuario Demo',
+      currency: 'COP',
+      locale: 'es-CO',
+      theme: 'light',
+      createdAt: new Date().toISOString(),
+    };
+
+    const demoToken = `token_demo_${Date.now()}`;
+    storage.setUser(demoUser);
+    storage.setToken(demoToken);
+
+    const { accounts, categories, transactions, budgets } = createSeedData(demoId);
+    storage.setAccounts(accounts);
+    storage.setCategories(categories);
+    storage.setTransactions(transactions);
+    storage.setBudgets(budgets);
+
+    dispatch({ type: 'LOGIN_SUCCESS', payload: { user: demoUser, token: demoToken } });
+    success('Datos de ejemplo cargados', 'Puedes editarlos o empezar desde cero');
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
 
@@ -182,6 +243,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       register,
       logout,
       updateProfile,
+  startFromZero,
+  loadDemoData,
     }}>
       {children}
     </AuthContext.Provider>
