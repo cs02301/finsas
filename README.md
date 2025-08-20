@@ -65,12 +65,10 @@ La aplicación funciona sin configuración adicional ya que simula el backend co
 ## 📱 Uso de la Aplicación
 
 ### Primer Uso
-1. **Registro**: Crea tu cuenta con email y contraseña
-2. **Datos Iniciales**: La aplicación genera automáticamente:
-   - 3 cuentas de ejemplo (Efectivo, Ahorros, Tarjeta)
-   - 20 transacciones de prueba de los últimos 90 días
-   - Presupuestos del mes actual
-   - Categorías predefinidas
+1. **Registro**: Crea tu cuenta con email y contrase.
+2. **Estado inicial**: Por defecto la aplicación no crea datos de prueba. Tras registrarte tendrás un perfil vacío para ingresar tus propios datos.
+
+Si quieres explorar primero la app con datos de ejemplo, ve a la página `Settings` y usa el botón "Cargar datos de ejemplo". Para comenzar totalmente vacío, usa "Iniciar desde cero".
 
 ### Funcionalidades Principales
 

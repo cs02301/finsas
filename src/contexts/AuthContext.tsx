@@ -73,36 +73,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user && token) {
       dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
     } else {
-      // Si no hay usuario almacenado, crear un usuario demo con datos semilla
-      // Esto permite ver la app con datos iniciales y crear/editar desde cero.
-      const demoUserExists = storage.getUser();
-      if (!demoUserExists) {
-        const demoId = uuidv4();
-        const demoUser: User = {
-          id: demoId,
-          email: 'demo@local',
-          name: 'Usuario Demo',
-          currency: 'COP',
-          locale: 'es-CO',
-          theme: 'light',
-          createdAt: new Date().toISOString(),
-        };
-
-        const demoToken = `token_demo_${Date.now()}`;
-        storage.setUser(demoUser);
-        storage.setToken(demoToken);
-
-        const { accounts, categories, transactions, budgets } = createSeedData(demoId);
-        storage.setAccounts(accounts);
-        storage.setCategories(categories);
-        storage.setTransactions(transactions);
-        storage.setBudgets(budgets);
-
-        dispatch({ type: 'LOGIN_SUCCESS', payload: { user: demoUser, token: demoToken } });
-        return;
-      }
-
-      dispatch({ type: 'SET_LOADING', payload: false });
+  // No crear usuario demo automáticamente en producción.
+  // Mantener la app en estado no autenticado para que el usuario real se registre.
+  dispatch({ type: 'SET_LOADING', payload: false });
     }
   }, []);
 
