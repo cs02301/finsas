@@ -107,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user: demoUser, token: demoToken } });
     success('Iniciado desde cero', 'Ahora puedes ingresar tus propios datos');
+  try { storage.syncFromRemote(demoId).catch(() => {}); } catch (e) {}
   };
 
   const loadDemoData = () => {
@@ -136,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user: demoUser, token: demoToken } });
     success('Datos de ejemplo cargados', 'Puedes editarlos o empezar desde cero');
+  try { storage.syncFromRemote(demoId).catch(() => {}); } catch (e) {}
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -152,7 +154,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         storage.setToken(token);
         dispatch({ type: 'LOGIN_SUCCESS', payload: { user: storedUser, token } });
         success('Login correcto', 'Bienvenido');
-        return true;
+  try { storage.syncFromRemote(storedUser.id).catch(() => {}); } catch (e) {}
+  return true;
       }
     }
 
@@ -193,7 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     dispatch({ type: 'LOGIN_SUCCESS', payload: { user, token } });
     success('Cuenta creada', 'Tu cuenta ha sido creada correctamente');
-    return true;
+  try { storage.syncFromRemote(userId).catch(() => {}); } catch (e) {}
+  return true;
   };
 
   const logout = () => {

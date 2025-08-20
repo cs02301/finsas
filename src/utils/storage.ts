@@ -1,4 +1,5 @@
 import { User, Account, Category, Transaction, Budget } from '../types';
+import { isSupabaseConfigured, upsertAccounts, upsertCategories, upsertTransactions, upsertBudgets, fetchAllForUser } from '../lib/supabase';
 
 const STORAGE_KEYS = {
   USER: 'finance_user',
@@ -42,6 +43,14 @@ export const storage = {
       !accounts.some(newAcc => newAcc.userId === acc.userId)
     );
     localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify([...otherAccounts, ...accounts]));
+    // replicate to Supabase if configured (fire-and-forget)
+    try {
+      if (isSupabaseConfigured()) {
+        upsertAccounts(accounts).catch(() => {/* ignore replication errors */});
+      }
+    } catch (e) {
+      // noop
+    }
   },
   
   getCategories: (): Category[] => {
@@ -51,6 +60,11 @@ export const storage = {
   
   setCategories: (categories: Category[]): void => {
     localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    try {
+      if (isSupabaseConfigured()) {
+        upsertCategories(categories).catch(() => {});
+      }
+    } catch (e) {}
   },
   
   getTransactions: (userId: string): Transaction[] => {
@@ -65,6 +79,11 @@ export const storage = {
       !transactions.some(newTrans => newTrans.userId === trans.userId)
     );
     localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify([...otherTransactions, ...transactions]));
+    try {
+      if (isSupabaseConfigured()) {
+        upsertTransactions(transactions).catch(() => {});
+      }
+    } catch (e) {}
   },
   
   getBudgets: (userId: string): Budget[] => {
@@ -79,6 +98,11 @@ export const storage = {
       !budgets.some(newBudget => newBudget.userId === budget.userId)
     );
     localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify([...otherBudgets, ...budgets]));
+    try {
+      if (isSupabaseConfigured()) {
+        upsertBudgets(budgets).catch(() => {});
+      }
+    } catch (e) {}
   },
   
   getTheme: (): 'light' | 'dark' => {
@@ -94,4 +118,17 @@ export const storage = {
       localStorage.removeItem(key);
     });
   },
+  // Fetch user data from Supabase and overwrite localStorage (used after login)
+  syncFromRemote: async (userId: string): Promise<void> => {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const { accounts, categories, transactions, budgets } = await fetchAllForUser(userId);
+      localStorage.setItem(STORAGE_KEYS.ACCOUNTS, JSON.stringify(accounts || []));
+      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories || []));
+      localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions || []));
+      localStorage.setItem(STORAGE_KEYS.BUDGETS, JSON.stringify(budgets || []));
+    } catch (e) {
+      // ignore sync errors
+    }
+  }
 };
